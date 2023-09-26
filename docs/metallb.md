@@ -26,15 +26,39 @@ By default only the MetalLB BGP speaker is allowed to run on control plane nodes
 ```yaml
 metallb_config:
   controller:
+    nodeselector:
+      kubernetes.io/os: linux
     tolerations:
-      - key: "node-role.kubernetes.io/master"
-        operator: "Equal"
-        value: ""
-        effect: "NoSchedule"
-      - key: "node-role.kubernetes.io/control-plane"
-        operator: "Equal"
-        value: ""
-        effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/master"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+```
+
+If you'd like to set additional nodeSelector and tolerations values, you can do so in the following fasion:
+
+```yaml
+metallb_config:
+  controller:
+    nodeselector:
+      kubernetes.io/os: linux
+    tolerations:
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
+  speaker:
+    nodeselector:
+      kubernetes.io/os: linux
+    tolerations:
+    - key: "node-role.kubernetes.io/control-plane"
+      operator: "Equal"
+      value: ""
+      effect: "NoSchedule"
 ```
 
 ## Pools
@@ -49,7 +73,6 @@ metallb_config:
     primary:
       ip_range:
         - 192.0.1.0-192.0.1.254
-      auto_assign: true
 
     pool1:
       ip_range:
@@ -58,8 +81,8 @@ metallb_config:
 
     pool2:
       ip_range:
-        - 192.0.2.2-192.0.2.2
-      auto_assign: false
+        - 192.0.3.0/24
+      avoid_buggy_ips: true # When set to true, .0 and .255 addresses will be avoided.
 ```
 
 ## Layer2 Mode
@@ -137,7 +160,6 @@ In this scenario you should disable the MetalLB speaker and configure the `calic
 
 ```yaml
 metallb_speaker_enabled: false
-metallb_avoid_buggy_ips: true
 metallb_config:
   address_pools:
     primary:
@@ -177,22 +199,22 @@ metallb_config:
       vpn-only: "1234:1"
       NO_ADVERTISE: "65535:65282"
     metallb_peers:
-        peer1:
-          peer_address: 10.6.0.1
-          peer_asn: 64512
-          my_asn: 4200000000
-          communities:
-            - vpn-only
-          address_pool:
-            - pool1
-        peer2:
-          peer_address: 10.10.0.1
-          peer_asn: 64513
-          my_asn: 4200000000
-          communities:
-            - NO_ADVERTISE
-          address_pool:
-            - pool2
+      peer1:
+        peer_address: 10.6.0.1
+        peer_asn: 64512
+        my_asn: 4200000000
+        communities:
+          - vpn-only
+        address_pool:
+          - pool1
+      peer2:
+        peer_address: 10.10.0.1
+        peer_asn: 64513
+        my_asn: 4200000000
+        communities:
+          - NO_ADVERTISE
+        address_pool:
+          - pool2
 calico_advertise_service_loadbalancer_ips:
   - 10.5.0.0/16
   - 10.6.0.0/16
